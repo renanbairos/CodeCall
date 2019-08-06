@@ -1,12 +1,11 @@
 package br.com.codecall.codecall.controller.activity
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaScannerConnection
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import android.support.v4.content.ContextCompat
+import androidx.core.content.ContextCompat
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
@@ -34,28 +33,28 @@ class ProfessorQRCodeActivity : AppCompatActivity() {
 
         image_view_qrcode = findViewById(R.id.image_view_qrcode)
         val intent = intent
-        val materia: Materia = intent.extras.get("materia") as Materia
-        gerarChamada(materia)
+        val idMateria: String = intent.getStringExtra("idMateria")
+        gerarChamada(idMateria)
     }
 
-    fun gerarChamada(materia: Materia){
+    fun gerarChamada(idMateria: String){
         val db = FirebaseFirestore.getInstance()
-        var chamada = Chamada(Date(), materia.idMateria)
+        var chamada = Chamada(Date(), idMateria)
         db.collection("chamadas")
             .add(chamada)
-            .addOnSuccessListener { documentReference ->
-                gerarQRCode()
+            .addOnSuccessListener {
+                documentReference -> gerarQRCode(documentReference.id)
             }
             .addOnFailureListener {
-
+                Toast.makeText(applicationContext, "Erro ao gerar QR Code", Toast.LENGTH_LONG)
+                    .show()
             }
     }
 
-    fun gerarQRCode() {
-        bitmap = TextToImageEncode("{\"idChamada\"=\"FHV0xpFukjlS9n3sl41j\"}")
+    fun gerarQRCode(id: String) {
+        bitmap = TextToImageEncode("{\"idChamada\"=\"${id}\"}")
         image_view_qrcode!!.setImageBitmap(bitmap)
-        val path = saveImage(bitmap)  //dando permissao de escrita
-        //Toast.makeText(this, "QRCode salvo", Toast.LENGTH_SHORT).show()
+        saveImage(bitmap)  //dando permissao de escrita
     }
 
     fun saveImage(myBitmap: Bitmap?): String {

@@ -1,7 +1,7 @@
 package br.com.codecall.codecall.controller.activity
 
 import android.content.Intent
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -14,7 +14,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.zxing.integration.android.IntentIntegrator
 import org.json.JSONException
 import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.*
 
 
@@ -30,12 +29,12 @@ class AlunoDashboardActivity : AppCompatActivity() {
 
         val botao_consultar_presencas: Button = findViewById(R.id.button_consultar_presencas)
         botao_consultar_presencas.setOnClickListener(){
-            consultar(mAuth.uid.toString())
+            consultar()
         }
 
         val botao_realizar_chamada: Button = findViewById(R.id.button_realizar_chamada)
         botao_realizar_chamada.setOnClickListener {
-            realizarChamada(mAuth.uid.toString())
+            realizarChamada()
         }
 
         qrScanIntegrator?.setOrientationLocked(false)
@@ -52,15 +51,15 @@ class AlunoDashboardActivity : AppCompatActivity() {
             R.id.menu -> {
                 mAuth.signOut()
                 val intent = Intent(this, MainActivity::class.java)
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 startActivity(intent)
             }
         }
         return super.onOptionsItemSelected(item)
     }
 
-    fun consultar(authID: String) {
-        val intent = Intent(this, AlunoPresencasActivity::class.java)
+    fun consultar() {
+        val intent = Intent(this, AlunoMateriasActivity::class.java)
         startActivity(intent)
     }
 
@@ -68,7 +67,7 @@ class AlunoDashboardActivity : AppCompatActivity() {
         val db = FirebaseFirestore.getInstance()
         db.collection("checkin")
             .add(checkin)
-            .addOnSuccessListener { documentReference ->
+            .addOnSuccessListener {
                 Toast.makeText(this, getString(R.string.result_add_success), Toast.LENGTH_LONG).show()
             }
             .addOnFailureListener {
@@ -76,7 +75,7 @@ class AlunoDashboardActivity : AppCompatActivity() {
             }
     }
 
-    fun realizarChamada(authID: String) {
+    fun realizarChamada() {
         qrScanIntegrator?.initiateScan()
     }
 

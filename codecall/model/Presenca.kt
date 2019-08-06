@@ -1,7 +1,5 @@
 package br.com.codecall.codecall.model
 
-import java.util.*
-
 class Presenca {
     var id: Int = 0
     var usuarioCpf: String = ""

@@ -1,12 +1,9 @@
 package br.com.codecall.codecall.model
 
 import java.io.Serializable
-import java.time.chrono.ChronoPeriod
-import java.util.*
 
 class Materia : Serializable {
-    var idCurso: Int = 0
-    var idMateria: Int = 0
+    var idCurso: String = ""
     var idProfessor: String = ""
     var nome: String = ""
     var periodo: String = ""
@@ -14,9 +11,8 @@ class Materia : Serializable {
 
     constructor()
 
-    constructor(idCurso: Int, idMateria: Int, idProfessor: String, nome: String, periodo: String, sigla: String) {
+    constructor(idCurso: String, idProfessor: String, nome: String, periodo: String, sigla: String) {
         this.idCurso = idCurso
-        this.idMateria = idMateria
         this.idProfessor = idProfessor
         this.nome = nome
         this.periodo = periodo

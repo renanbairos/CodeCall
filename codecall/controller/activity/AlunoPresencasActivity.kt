@@ -1,9 +1,7 @@
 package br.com.codecall.codecall.controller.activity
 
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.widget.Toast
 import br.com.codecall.codecall.R
 import br.com.codecall.codecall.controller.adapter.AlunoAdapter
@@ -14,29 +12,30 @@ import java.util.ArrayList
 
 class AlunoPresencasActivity : AppCompatActivity() {
     lateinit var mAuth: FirebaseAuth
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var recyclerView: androidx.recyclerview.widget.RecyclerView
     private lateinit var viewAdapter: AlunoAdapter
-    private lateinit var viewManager: RecyclerView.LayoutManager
+    private lateinit var viewManager: androidx.recyclerview.widget.RecyclerView.LayoutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_aluno_presencas)
 
         mAuth = FirebaseAuth.getInstance()
-        consultarPresencas(mAuth.uid.toString())
+        consultarPresencasMateria(mAuth.uid.toString(), intent.getStringExtra("idMateria"))
     }
 
-    private fun consultarPresencas(authID: String) {
+    private fun consultarPresencasMateria(authID: String, idMateria: String) {
         val db = FirebaseFirestore.getInstance()
         val listaHistorico: MutableList<Historico> = ArrayList()
-        getCheckins(db, authID, listaHistorico)
+        getCheckins(db, authID, listaHistorico, idMateria)
         setupRecyclerView(listaHistorico)
     }
 
     private fun getCheckins(
         db: FirebaseFirestore,
         authID: String,
-        listaHistorico: MutableList<Historico>
+        listaHistorico: MutableList<Historico>,
+        idMateria: String
     ) {
         val checkinRef = db.collection("checkin").whereEqualTo("idAluno", authID)
         checkinRef.get().addOnCompleteListener { task ->
@@ -44,7 +43,7 @@ class AlunoPresencasActivity : AppCompatActivity() {
                 if (!task.result.isEmpty) {
                     for (document in task.result) {
                         val checkin = document.toObject(Checkin::class.java)
-                        getChamadas(db, checkin, listaHistorico)
+                        getMaterias(db, checkin, listaHistorico, idMateria)
                     }
                 } else {
                     Toast.makeText(applicationContext, "Sem presenças cadastradas", Toast.LENGTH_LONG).show()
@@ -55,40 +54,19 @@ class AlunoPresencasActivity : AppCompatActivity() {
         }
     }
 
-    private fun getChamadas(
-        db: FirebaseFirestore,
-        checkin: Checkin,
-        listaHistorico: MutableList<Historico>
-    ) {
-        db.collection("chamadas").document(checkin.idChamada).get().addOnCompleteListener { task2 ->
-            if (task2.isSuccessful) {
-                if (task2.result.exists()) {
-                    val chamada = task2.result.toObject(Chamada::class.java)
-                    getMaterias(db, chamada, checkin, listaHistorico)
-                } else {
-                    Toast.makeText(applicationContext, "Algum(ns) registros apresentam erro. Verifique com o professor.", Toast.LENGTH_LONG).show()
-                }
-            } else {
-                Toast.makeText(applicationContext, "Erro na consulta de chamadas", Toast.LENGTH_LONG)
-                    .show()
-            }
-        }
-    }
-
     private fun getMaterias(
         db: FirebaseFirestore,
-        chamada: Chamada?,
         checkin: Checkin,
-        listaHistorico: MutableList<Historico>
+        listaHistorico: MutableList<Historico>,
+        idMateria: String
     ) {
-        db.collection("materias").whereEqualTo("idMateria", chamada?.idMateria).get()
+        db.collection("materias").document(idMateria).get()
             .addOnCompleteListener { task3 ->
                 if (task3.isSuccessful) {
-                    if (!task3.result.isEmpty) {
-                        for (document2 in task3.result) {
-                            val materia = document2.toObject(Materia::class.java)
+                    if (task3.result.exists()) {
+                        val materia = task3.result.toObject(Materia::class.java)
+                        if (materia != null)
                             getUsuarios(db, materia, checkin, listaHistorico)
-                        }
                     } else {
                         Toast.makeText(
                             applicationContext,
@@ -113,25 +91,25 @@ class AlunoPresencasActivity : AppCompatActivity() {
         listaHistorico: MutableList<Historico>
     ) {
         db.collection("usuarios")
-            .whereEqualTo("authID", materia.idProfessor).get()
+            .document(materia.idProfessor).get()
             .addOnCompleteListener { task4 ->
-                if (task4.isSuccessful) {
-                    if (!task4.result.isEmpty) {
-                        for (document3 in task4.result) {
-                            val usuario = document3.toObject(Usuario::class.java)
-                            val historico: Historico = Historico()
-                            historico.horaCriacao = checkin.dataCriacao
-                            historico.nomeProfessor = usuario.nome
-                            historico.siglaMateria = materia.sigla
-                            listaHistorico.add(historico)
-                        }
+                if (task4.result != null) {
+                    val usuario = task4.result.toObject(Usuario::class.java)
+                    if(usuario == null) {
+                        Toast.makeText(applicationContext,"Erro na consulta de professores",Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(applicationContext,"Professor desconhecido",Toast.LENGTH_LONG).show()
+                        val historico: Historico = Historico()
+                        historico.horaCriacao = checkin.dataCriacao
+                        historico.nomeProfessor = usuario.nome
+                        historico.siglaMateria = materia.sigla
+                        listaHistorico.add(historico)
                     }
-                    atualizarRecyclerView(listaHistorico)
                 } else {
                     Toast.makeText(applicationContext,"Erro na consulta de professores",Toast.LENGTH_LONG).show()
                 }
+                atualizarRecyclerView(listaHistorico)
+            }.addOnFailureListener{
+                Toast.makeText(applicationContext, "Erro no banco ao consultar professor", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -141,10 +119,10 @@ class AlunoPresencasActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView(listaCheckin: MutableList<Historico>) {
-        viewManager = LinearLayoutManager(this)
+        viewManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         viewAdapter = AlunoAdapter(listaCheckin)
 
-        recyclerView = findViewById<RecyclerView>(R.id.recyclerViewAluno).apply {
+        recyclerView = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerViewAluno).apply {
             // use this setting to improve performance if you know that changes
             // in content do not change the layout size of the RecyclerView
             setHasFixedSize(true)
